@@ -1,10 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using System;
 
-namespace Cart.Api.Endpoints
+namespace Core.Api.Endpoints
 {
     [ApiController]
     public class ApiController : ControllerBase

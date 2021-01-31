@@ -1,4 +1,5 @@
 using Cart.Api.Data;
+using Core.Api;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -20,8 +21,6 @@ namespace Cart.Api
 
         private readonly IConfiguration _configuration;
 
-        internal static ILoggerFactory LoggerFactory;
-
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllers()
@@ -41,7 +40,7 @@ namespace Cart.Api
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
-            LoggerFactory = loggerFactory;
+            Shared.LoggerFactory = loggerFactory;
 
             if (env.IsDevelopment())
             {

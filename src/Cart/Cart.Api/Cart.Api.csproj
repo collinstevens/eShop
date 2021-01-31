@@ -23,4 +23,8 @@
     <Folder Include="Data\Migrations\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Core.Api\Core.Api.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -1,6 +1,7 @@
-﻿using Cart.Api.Data;
+using Cart.Api.Data;
 using Cart.Api.Data.Models;
-using Cart.Api.Extensions;
+using Core.Api.Endpoints;
+using Core.Api.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;

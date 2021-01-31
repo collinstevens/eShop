@@ -1,13 +1,13 @@
-﻿using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
 
-namespace Cart.Api.Extensions
+namespace Core.Api.Extensions
 {
     public static class StringLocalizerExtensions
     {
-        private static readonly Lazy<ILogger> _loggerLazy = new Lazy<ILogger>(Startup.LoggerFactory.CreateLogger(typeof(StringLocalizerExtensions)));
+        private static readonly Lazy<ILogger> _loggerLazy = new Lazy<ILogger>(Shared.LoggerFactory.CreateLogger(typeof(StringLocalizerExtensions)));
 
         private static readonly ILogger _logger = _loggerLazy.Value;
 
