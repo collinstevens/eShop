@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using System;
 
 namespace Cart.Api
@@ -41,8 +42,6 @@ namespace Cart.Api
             services.AddDbContextPool<CartContext>(options => options.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")));
 
             services.AddLocalization(options => options.ResourcesPath = "Resources");
-
-            services.AddLogging();
 
             services.AddSwaggerGen(c =>
             {
@@ -76,6 +75,8 @@ namespace Cart.Api
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Cart API v1"));
             }
+
+            app.UseSerilogRequestLogging();
 
             var supportedCultures = new[] { "en-US" };
             var localizationOptions = new RequestLocalizationOptions().SetDefaultCulture(supportedCultures[0])

@@ -8,9 +8,6 @@ end_of_line = crlf
 trim_trailing_whitespace = true
 insert_final_newline = true
 
-[*.{json,csproj}]
-indent_size = 2
-
 [launchSettings.json]
 charset = utf-8-bom
 
@@ -65,9 +62,9 @@ csharp_prefer_braces = false:suggestion
 #Style - expression bodied member options
 
 #prefer block bodies for constructors
-csharp_style_expression_bodied_constructors = false:suggestion
+csharp_style_expression_bodied_constructors = false:silent
 #prefer block bodies for methods
-csharp_style_expression_bodied_methods = false:suggestion
+csharp_style_expression_bodied_methods = false:silent
 
 #Style - expression level options
 
