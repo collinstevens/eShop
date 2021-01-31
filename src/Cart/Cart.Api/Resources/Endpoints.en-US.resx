@@ -120,4 +120,7 @@
   <data name="CartNotFound" xml:space="preserve">
     <value>Cart '{0}' was not found.</value>
   </data>
+  <data name="ProductNotFoundInCart" xml:space="preserve">
+    <value>Product '{ProductId}' was not found in cart '{CartId}'.</value>
+  </data>
 </root>

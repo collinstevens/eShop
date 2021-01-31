@@ -7,11 +7,11 @@ namespace Core.Api.Extensions
 {
     public static class StringLocalizerExtensions
     {
-        private static readonly Lazy<ILogger> _loggerLazy = new Lazy<ILogger>(Shared.LoggerFactory.CreateLogger(typeof(StringLocalizerExtensions)));
+        private readonly static Lazy<ILogger> _loggerLazy = new Lazy<ILogger>(Shared.LoggerFactory.CreateLogger(typeof(StringLocalizerExtensions)));
 
-        private static readonly ILogger _logger = _loggerLazy.Value;
+        private readonly static ILogger _logger = _loggerLazy.Value;
 
-        public static string GetResourceValue(this IStringLocalizer localizer, string name, params string[] arguments)
+        public static string GetStringSafe(this IStringLocalizer localizer, string name, params object[] arguments)
         {
             if (localizer is null)
                 throw new ArgumentNullException(nameof(localizer));

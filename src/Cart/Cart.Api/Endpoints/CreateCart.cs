@@ -32,7 +32,7 @@ namespace Cart.Api.Endpoints
         private readonly IStringLocalizer<CreateCart> _localizer;
         private readonly CartContext _context;
 
-        [HttpPost("/cart")]
+        [HttpPost("/api/cart")]
         public async Task<IActionResult> Handle(CancellationToken cancellationToken = default)
         {
             _logger.LogTrace("Received request to create cart.");

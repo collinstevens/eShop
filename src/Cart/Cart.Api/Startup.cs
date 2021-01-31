@@ -1,5 +1,7 @@
+using AutoMapper;
 using Cart.Api.Data;
 using Core.Api;
+using Core.Api.Utility;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -7,8 +9,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using System;
 
 namespace Cart.Api
 {
@@ -16,6 +20,9 @@ namespace Cart.Api
     {
         public Startup(IConfiguration configuration)
         {
+            if (configuration is null)
+                throw new ArgumentNullException(nameof(configuration));
+
             _configuration = configuration;
         }
 
@@ -23,8 +30,13 @@ namespace Cart.Api
 
         public void ConfigureServices(IServiceCollection services)
         {
+            if (services is null)
+                throw new ArgumentNullException(nameof(services));
+
             services.AddControllers()
                     .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<Startup>(lifetime: ServiceLifetime.Singleton));
+
+            services.AddAutoMapper(typeof(Startup));
 
             services.AddDbContextPool<CartContext>(options => options.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")));
 
@@ -36,10 +48,26 @@ namespace Cart.Api
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Cart API", Version = "v1" });
             });
+
+            services.AddSingleton<IClock, Clock>();
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory, IMapper mapper)
         {
+            if (app is null)
+                throw new ArgumentNullException(nameof(app));
+
+            if (env is null)
+                throw new ArgumentNullException(nameof(env));
+
+            if (loggerFactory is null)
+                throw new ArgumentNullException(nameof(loggerFactory));
+
+            if (mapper is null)
+                throw new ArgumentNullException(nameof(mapper));
+
+            mapper.ConfigurationProvider.AssertConfigurationIsValid();
+
             Shared.LoggerFactory = loggerFactory;
 
             if (env.IsDevelopment())
