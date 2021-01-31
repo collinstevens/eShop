@@ -74,7 +74,7 @@ namespace Cart.Api.Endpoints
                 int existingQuantity = item.Quantity;
                 item.Quantity += request.Increment;
 
-                _logger.LogTrace("Updating item for cart \"{CartId}\" and product \"{ProductID}\" quantity to \"{NewQuantity}\" from \"{ExistingQuantity}\".",
+                _logger.LogTrace("Updating item for cart \"{CartId}\" and product \"{ProductId}\" quantity to \"{NewQuantity}\" from \"{ExistingQuantity}\".",
                     request.CartId, request.ProductId, item.Quantity, existingQuantity);
             }
 
