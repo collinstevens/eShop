@@ -1,6 +1,7 @@
 using AutoMapper;
 using Cart.Api.Data;
 using Core.Api;
+using Core.Api.Serilog;
 using Core.Api.Utility;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
@@ -9,11 +10,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using System;
+using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
 namespace Cart.Api
 {
@@ -35,7 +36,7 @@ namespace Cart.Api
                 throw new ArgumentNullException(nameof(services));
 
             services.AddControllers()
-                    .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<Startup>(lifetime: ServiceLifetime.Singleton));
+                .AddFluentValidation(fv => fv.RegisterValidatorsFromAssemblyContaining<Startup>(lifetime: ServiceLifetime.Singleton));
 
             services.AddAutoMapper(typeof(Startup));
 
@@ -76,7 +77,7 @@ namespace Cart.Api
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Cart API v1"));
             }
 
-            app.UseSerilogRequestLogging();
+            app.UseSerilogRequestLogging(options => options.EnrichDiagnosticContext = LogEnricher.EnrichFromRequest);
 
             var supportedCultures = new[] { "en-US" };
             var localizationOptions = new RequestLocalizationOptions().SetDefaultCulture(supportedCultures[0])
@@ -91,6 +92,7 @@ namespace Cart.Api
 
             app.UseAuthorization();
 
+            // TODO(collin): health checks and serilog https://andrewlock.net/using-serilog-aspnetcore-in-asp-net-core-3-excluding-health-check-endpoints-from-serilog-request-logging/
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();

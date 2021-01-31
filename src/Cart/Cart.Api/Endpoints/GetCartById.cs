@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using System;
 using System.Linq;
 using System.Threading;
@@ -16,10 +17,13 @@ namespace Cart.Api.Endpoints
 {
     public partial class GetCartById : ApiController
     {
-        public GetCartById(ILogger<GetCartById> logger, IStringLocalizer<GetCartById> localizer, IMapper mapper, CartContext context)
+        public GetCartById(ILogger<GetCartById> logger, IDiagnosticContext diagnosticsContext, IStringLocalizer<GetCartById> localizer, IMapper mapper, CartContext context)
         {
             if (logger is null)
                 throw new ArgumentNullException(nameof(logger));
+
+            if (diagnosticsContext is null)
+                throw new ArgumentNullException(nameof(diagnosticsContext));
 
             if (localizer is null)
                 throw new ArgumentNullException(nameof(localizer));
@@ -30,35 +34,44 @@ namespace Cart.Api.Endpoints
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
 
-            _logger = logger;
-            _localizer = localizer;
-            _mapper = mapper;
-            _context = context;
+            Logger = logger;
+            DiagnosticsContext = diagnosticsContext;
+            Localizer = localizer;
+            Mapper = mapper;
+            Context = context;
         }
 
-        private readonly ILogger _logger;
-        private readonly IStringLocalizer<GetCartById> _localizer;
-        private readonly IMapper _mapper;
-        private readonly CartContext _context;
+        public ILogger<GetCartById> Logger { get; }
+
+        public IDiagnosticContext DiagnosticsContext { get; }
+
+        public IStringLocalizer<GetCartById> Localizer { get; }
+
+        public IMapper Mapper { get; }
+
+        public CartContext Context { get; }
+
 
         [HttpGet("/api/cart/{id}")]
         public async Task<IActionResult> Handle(Guid id, CancellationToken cancellationToken = default)
         {
-            _logger.LogTrace("Received request to get cart by id \"{CartId}\".", id);
+            DiagnosticsContext.Set("CartId", id);
 
-            CartEntity cart = await _context.Carts.AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, cancellationToken);
+            CartEntity cart = await Context.Carts.AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, cancellationToken);
 
             if (cart is null)
             {
-                _logger.LogTrace("Cart \"{CartId}\" was not found.", id);
-                string message = _localizer.GetStringSafe("CartNotFound", id);
+                Logger.LogTrace("Cart was not found");
+                string message = Localizer.GetStringSafe("CartNotFound", id);
                 return NotFoundProblem(message);
             }
 
-            ItemEntity[] items = await _context.Items.AsNoTracking().Where(i => i.CartId == cart.Id).ToArrayAsync(cancellationToken);
+            ItemEntity[] items = await Context.Items.AsNoTracking().Where(i => i.CartId == cart.Id).ToArrayAsync(cancellationToken);
 
-            var response = _mapper.Map<Response>(cart);
+            var response = Mapper.Map<Response>(cart);
             response.Items = items;
+
+            DiagnosticsContext.Set("Cart.ItemCount", items.Length);
 
             return Ok(response);
         }

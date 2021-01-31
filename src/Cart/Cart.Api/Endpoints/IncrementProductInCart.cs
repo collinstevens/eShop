@@ -16,7 +16,7 @@ namespace Cart.Api.Endpoints
 {
     public partial class IncrementProductInCart : ApiController
     {
-        public IncrementProductInCart(ILogger<IncrementProductInCart> logger, IStringLocalizer<IncrementProductInCart> localizer, IMapper mapper, CartContext context)
+        public IncrementProductInCart(ILogger<IncrementProductInCart> logger, IStringLocalizer<Program> localizer, IMapper mapper, CartContext context)
         {
             if (logger is null)
                 throw new ArgumentNullException(nameof(logger));
@@ -30,16 +30,19 @@ namespace Cart.Api.Endpoints
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
 
-            _logger = logger;
-            _localizer = localizer;
-            _mapper = mapper;
-            _context = context;
+            Logger = logger;
+            Localizer = localizer;
+            Mapper = mapper;
+            Context = context;
         }
 
-        private readonly ILogger _logger;
-        private readonly IStringLocalizer<IncrementProductInCart> _localizer;
-        private readonly IMapper _mapper;
-        private readonly CartContext _context;
+        public ILogger Logger { get; }
+
+        public IStringLocalizer<Program> Localizer { get; }
+
+        public IMapper Mapper { get; }
+
+        public CartContext Context { get; }
 
         [HttpPost("/api/cart/item")]
         public async Task<IActionResult> Handle(Request request, CancellationToken cancellationToken = default)
@@ -47,40 +50,40 @@ namespace Cart.Api.Endpoints
             if (request is null)
                 return BadRequest();
 
-            _logger.LogTrace("Received request to increment product \"{ProductId}\" in cart \"{CartId}\" by \"{Increment}\".", request.ProductId, request.CartId, request.Increment);
+            Logger.LogTrace("Received request to increment product \"{ProductId}\" in cart \"{CartId}\" by \"{Increment}\".", request.ProductId, request.CartId, request.Increment);
 
-            CartEntity cart = await _context.Carts.AsNoTracking().SingleOrDefaultAsync(c => c.Id == request.CartId, cancellationToken);
+            CartEntity cart = await Context.Carts.AsNoTracking().SingleOrDefaultAsync(c => c.Id == request.CartId, cancellationToken);
 
             if (cart is null)
             {
-                _logger.LogTrace("Cart \"{CartId}\" was not found.", request.CartId);
-                string message = _localizer.GetStringSafe("CartNotFound", request.CartId);
+                Logger.LogTrace("Cart \"{CartId}\" was not found.", request.CartId);
+                string message = Localizer.GetStringSafe("CartNotFound", request.CartId);
                 return NotFoundProblem(message);
             }
 
-            ItemEntity item = await _context.Items.AsTracking().SingleOrDefaultAsync(c => c.CartId == request.CartId && c.ProductId == request.ProductId, cancellationToken);
+            ItemEntity item = await Context.Items.AsTracking().SingleOrDefaultAsync(c => c.CartId == request.CartId && c.ProductId == request.ProductId, cancellationToken);
 
             if (item is null)
             {
-                _logger.LogTrace("Item for cart \"{CartId}\" and product \"{ProductId}\" was not found, creating new item with quantity \"{Quantity}\".",
+                Logger.LogTrace("Item for cart \"{CartId}\" and product \"{ProductId}\" was not found, creating new item with quantity \"{Quantity}\".",
                     request.CartId, request.ProductId, request.Increment);
 
-                item = _mapper.Map<ItemEntity>(request);
+                item = Mapper.Map<ItemEntity>(request);
 
-                _context.Items.Add(item);
+                Context.Items.Add(item);
             }
             else
             {
                 int existingQuantity = item.Quantity;
                 item.Quantity += request.Increment;
 
-                _logger.LogTrace("Updating item for cart \"{CartId}\" and product \"{ProductId}\" quantity to \"{NewQuantity}\" from \"{ExistingQuantity}\".",
+                Logger.LogTrace("Updating item for cart \"{CartId}\" and product \"{ProductId}\" quantity to \"{NewQuantity}\" from \"{ExistingQuantity}\".",
                     request.CartId, request.ProductId, item.Quantity, existingQuantity);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await Context.SaveChangesAsync(cancellationToken);
 
-            var response = _mapper.Map<Response>(item);
+            var response = Mapper.Map<Response>(item);
 
             return Ok(response);
         }

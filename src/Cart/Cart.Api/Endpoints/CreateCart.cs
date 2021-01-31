@@ -12,7 +12,7 @@ namespace Cart.Api.Endpoints
 {
     public class CreateCart : ApiController
     {
-        public CreateCart(ILogger<CreateCart> logger, IStringLocalizer<CreateCart> localizer, CartContext context)
+        public CreateCart(ILogger<CreateCart> logger, IStringLocalizer<Program> localizer, CartContext context)
         {
             if (logger is null)
                 throw new ArgumentNullException(nameof(logger));
@@ -23,25 +23,27 @@ namespace Cart.Api.Endpoints
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
 
-            _logger = logger;
-            _localizer = localizer;
-            _context = context;
+            Logger = logger;
+            Localizer = localizer;
+            Context = context;
         }
 
-        private readonly ILogger _logger;
-        private readonly IStringLocalizer<CreateCart> _localizer;
-        private readonly CartContext _context;
+        public ILogger Logger { get; }
+
+        public IStringLocalizer<Program> Localizer { get; }
+
+        public CartContext Context { get; }
 
         [HttpPost("/api/cart")]
         public async Task<IActionResult> Handle(CancellationToken cancellationToken = default)
         {
-            _logger.LogTrace("Received request to create cart.");
+            Logger.LogTrace("Received request to create cart.");
 
             CartEntity cart = new();
 
-            _context.Add(cart);
+            Context.Add(cart);
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await Context.SaveChangesAsync(cancellationToken);
 
             return CreatedAtAction(nameof(GetCartById.Handle), nameof(GetCartById), new { cart.Id }, cart);
         }
