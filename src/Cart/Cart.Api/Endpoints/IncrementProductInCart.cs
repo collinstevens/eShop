@@ -47,13 +47,13 @@ namespace Cart.Api.Endpoints
             if (request is null)
                 return BadRequest();
 
-            _logger.LogTrace("Received request to increment product '{ProductId}' in cart '{CartId}' by '{Increment}'.", request.ProductId, request.CartId, request.Increment);
+            _logger.LogTrace("Received request to increment product \"{ProductId}\" in cart \"{CartId}\" by \"{Increment}\".", request.ProductId, request.CartId, request.Increment);
 
             CartEntity cart = await _context.Carts.AsNoTracking().SingleOrDefaultAsync(c => c.Id == request.CartId, cancellationToken);
 
             if (cart is null)
             {
-                _logger.LogTrace("Cart '{CartId}' was not found.", request.CartId);
+                _logger.LogTrace("Cart \"{CartId}\" was not found.", request.CartId);
                 string message = _localizer.GetStringSafe("CartNotFound", request.CartId);
                 return NotFoundProblem(message);
             }
@@ -62,7 +62,7 @@ namespace Cart.Api.Endpoints
 
             if (item is null)
             {
-                _logger.LogTrace("Item for cart '{CartId}' and product '{ProductId}' was not found, creating new item with quantity '{Quantity}'.",
+                _logger.LogTrace("Item for cart \"{CartId}\" and product \"{ProductId}\" was not found, creating new item with quantity \"{Quantity}\".",
                     request.CartId, request.ProductId, request.Increment);
 
                 item = _mapper.Map<ItemEntity>(request);
@@ -74,7 +74,7 @@ namespace Cart.Api.Endpoints
                 int existingQuantity = item.Quantity;
                 item.Quantity += request.Increment;
 
-                _logger.LogTrace("Updating item for cart '{CartId}' and product '{ProductID}' quantity to '{NewQuantity}' from '{ExistingQuantity}'.",
+                _logger.LogTrace("Updating item for cart \"{CartId}\" and product \"{ProductID}\" quantity to \"{NewQuantity}\" from \"{ExistingQuantity}\".",
                     request.CartId, request.ProductId, item.Quantity, existingQuantity);
             }
 

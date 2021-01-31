@@ -47,13 +47,13 @@ namespace Cart.Api.Endpoints
             if (request is null)
                 return BadRequest();
 
-            _logger.LogTrace("Received request to decrement product '{ProductId}' from cart '{CartId}' by '{Decrement}'.", request.ProductId, request.CartId, request.Decrement);
+            _logger.LogTrace("Received request to decrement product \"{ProductId}\" from cart \"{CartId}\" by \"{Decrement}\".", request.ProductId, request.CartId, request.Decrement);
 
             CartEntity cart = await _context.Carts.AsNoTracking().SingleOrDefaultAsync(c => c.Id == request.CartId, cancellationToken);
 
             if (cart is null)
             {
-                _logger.LogTrace("Cart '{CartId}' was not found.", request.CartId);
+                _logger.LogTrace("Cart \"{CartId}\" was not found.", request.CartId);
                 string message = _localizer.GetStringSafe("CartNotFound", request.CartId);
                 return NotFoundProblem(message);
             }
@@ -62,7 +62,7 @@ namespace Cart.Api.Endpoints
 
             if (item is null)
             {
-                _logger.LogTrace("Product '{ProductId}' was not found in cart '{CartId}'.", request.ProductId, request.CartId);
+                _logger.LogTrace("Product \"{ProductId}\" was not found in cart \"{CartId}\".", request.ProductId, request.CartId);
                 string message = _localizer.GetStringSafe("ProductNotFoundInCart", request.ProductId, request.CartId);
                 return NotFoundProblem(message);
             }
@@ -70,7 +70,7 @@ namespace Cart.Api.Endpoints
             int existingQuantity = item.Quantity;
             item.Quantity = Math.Max(0, existingQuantity - request.Decrement);
 
-            _logger.LogTrace("Updating item for cart '{CartId}' and product '{ProductID}' quantity to '{NewQuantity}' from '{ExistingQuantity}'.", 
+            _logger.LogTrace("Updating item for cart \"{CartId}\" and product \"{ProductID}\" quantity to \"{NewQuantity}\" from \"{ExistingQuantity}\".", 
                 request.CartId, request.ProductId, item.Quantity, existingQuantity);
 
             await _context.SaveChangesAsync(cancellationToken);

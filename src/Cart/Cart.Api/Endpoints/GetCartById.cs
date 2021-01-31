@@ -44,13 +44,13 @@ namespace Cart.Api.Endpoints
         [HttpGet("/api/cart/{id}")]
         public async Task<IActionResult> Handle(Guid id, CancellationToken cancellationToken = default)
         {
-            _logger.LogTrace("Received request to get cart by id '{CartId}'.", id);
+            _logger.LogTrace("Received request to get cart by id \"{CartId}\".", id);
 
             CartEntity cart = await _context.Carts.AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, cancellationToken);
 
             if (cart is null)
             {
-                _logger.LogTrace("Cart '{CartId}' was not found.", id);
+                _logger.LogTrace("Cart \"{CartId}\" was not found.", id);
                 string message = _localizer.GetStringSafe("CartNotFound", id);
                 return NotFoundProblem(message);
             }
