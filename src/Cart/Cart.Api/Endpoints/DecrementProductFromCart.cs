@@ -3,11 +3,13 @@ using Cart.Api.Data;
 using Cart.Api.Data.Models;
 using Core.Api.Endpoints;
 using Core.Api.Extensions;
+using Core.Api.Utility;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,10 +18,13 @@ namespace Cart.Api.Endpoints
 {
     public partial class DecrementProductFromCart : ApiController
     {
-        public DecrementProductFromCart(ILogger<IncrementProductInCart> logger, IStringLocalizer<Program> localizer, IMapper mapper, CartContext context)
+        public DecrementProductFromCart(ILogger<IncrementProductInCart> logger, IDiagnosticContext diagnosticsContext, IStringLocalizer<Program> localizer, IMapper mapper, IClock clock, CartContext context)
         {
             if (logger is null)
                 throw new ArgumentNullException(nameof(logger));
+
+            if (diagnosticsContext is null)
+                throw new ArgumentNullException(nameof(diagnosticsContext));
 
             if (localizer is null)
                 throw new ArgumentNullException(nameof(localizer));
@@ -27,20 +32,29 @@ namespace Cart.Api.Endpoints
             if (mapper is null)
                 throw new ArgumentNullException(nameof(mapper));
 
+            if (clock is null)
+                throw new ArgumentNullException(nameof(clock));
+
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
 
             Logger = logger;
+            DiagnosticsContext = diagnosticsContext;
             Localizer = localizer;
             Mapper = mapper;
+            Clock = clock;
             Context = context;
         }
 
         public ILogger<IncrementProductInCart> Logger { get; }
 
+        public IDiagnosticContext DiagnosticsContext { get; }
+
         public IStringLocalizer<Program> Localizer { get; }
 
         public IMapper Mapper { get; }
+
+        public IClock Clock { get; }
 
         public CartContext Context { get; }
 
@@ -50,13 +64,15 @@ namespace Cart.Api.Endpoints
             if (request is null)
                 return BadRequest();
 
-            Logger.LogTrace("Received request to decrement product \"{ProductId}\" from cart \"{CartId}\" by \"{Decrement}\".", request.ProductId, request.CartId, request.Decrement);
+            DiagnosticsContext.Set("CartId", request.CartId);
+            DiagnosticsContext.Set("ProductId", request.ProductId);
+            DiagnosticsContext.Set("Decrement", request.Decrement);
 
             CartEntity cart = await Context.Carts.AsNoTracking().SingleOrDefaultAsync(c => c.Id == request.CartId, cancellationToken);
 
             if (cart is null)
             {
-                Logger.LogTrace("Cart \"{CartId}\" was not found.", request.CartId);
+                Logger.LogTrace("Cart not found");
                 string message = Localizer.GetStringSafe("CartNotFound", request.CartId);
                 return NotFoundProblem(message);
             }
@@ -65,16 +81,22 @@ namespace Cart.Api.Endpoints
 
             if (item is null)
             {
-                Logger.LogTrace("Product \"{ProductId}\" was not found in cart \"{CartId}\".", request.ProductId, request.CartId);
+                Logger.LogTrace("Product not found in cart");
                 string message = Localizer.GetStringSafe("ProductNotFoundInCart", request.ProductId, request.CartId);
                 return NotFoundProblem(message);
             }
 
             int existingQuantity = item.Quantity;
             item.Quantity = Math.Max(0, existingQuantity - request.Decrement);
+            item.ModifiedOn = Clock.UtcNow;
 
-            Logger.LogTrace("Updating item for cart \"{CartId}\" and product \"{ProductId}\" quantity to \"{NewQuantity}\" from \"{ExistingQuantity}\".", 
-                request.CartId, request.ProductId, item.Quantity, existingQuantity);
+            DiagnosticsContext.Set("NewQuantity", item.Quantity);
+            DiagnosticsContext.Set("PreviousQuantity", existingQuantity);
+
+            if (item.Quantity == 0)
+            {
+                Context.Items.Remove(item);
+            }
 
             await Context.SaveChangesAsync(cancellationToken);
 

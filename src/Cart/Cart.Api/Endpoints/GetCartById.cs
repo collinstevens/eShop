@@ -17,7 +17,7 @@ namespace Cart.Api.Endpoints
 {
     public partial class GetCartById : ApiController
     {
-        public GetCartById(ILogger<GetCartById> logger, IDiagnosticContext diagnosticsContext, IStringLocalizer<GetCartById> localizer, IMapper mapper, CartContext context)
+        public GetCartById(ILogger<GetCartById> logger, IDiagnosticContext diagnosticsContext, IStringLocalizer<Program> localizer, IMapper mapper, CartContext context)
         {
             if (logger is null)
                 throw new ArgumentNullException(nameof(logger));
@@ -45,7 +45,7 @@ namespace Cart.Api.Endpoints
 
         public IDiagnosticContext DiagnosticsContext { get; }
 
-        public IStringLocalizer<GetCartById> Localizer { get; }
+        public IStringLocalizer<Program> Localizer { get; }
 
         public IMapper Mapper { get; }
 
@@ -61,7 +61,7 @@ namespace Cart.Api.Endpoints
 
             if (cart is null)
             {
-                Logger.LogTrace("Cart was not found");
+                Logger.LogTrace("Cart not found");
                 string message = Localizer.GetStringSafe("CartNotFound", id);
                 return NotFoundProblem(message);
             }
@@ -71,7 +71,7 @@ namespace Cart.Api.Endpoints
             var response = Mapper.Map<Response>(cart);
             response.Items = items;
 
-            DiagnosticsContext.Set("Cart.ItemCount", items.Length);
+            DiagnosticsContext.Set("CartItemCount", items.Length);
 
             return Ok(response);
         }

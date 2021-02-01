@@ -3,11 +3,13 @@ using Cart.Api.Data;
 using Cart.Api.Data.Models;
 using Core.Api.Endpoints;
 using Core.Api.Extensions;
+using Core.Api.Utility;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,10 +18,13 @@ namespace Cart.Api.Endpoints
 {
     public partial class IncrementProductInCart : ApiController
     {
-        public IncrementProductInCart(ILogger<IncrementProductInCart> logger, IStringLocalizer<Program> localizer, IMapper mapper, CartContext context)
+        public IncrementProductInCart(ILogger<IncrementProductInCart> logger, IDiagnosticContext diagnosticsContext, IStringLocalizer<Program> localizer, IMapper mapper, IClock clock, CartContext context)
         {
             if (logger is null)
                 throw new ArgumentNullException(nameof(logger));
+
+            if (diagnosticsContext is null)
+                throw new ArgumentNullException(nameof(diagnosticsContext));
 
             if (localizer is null)
                 throw new ArgumentNullException(nameof(localizer));
@@ -27,20 +32,29 @@ namespace Cart.Api.Endpoints
             if (mapper is null)
                 throw new ArgumentNullException(nameof(mapper));
 
+            if (clock is null)
+                throw new ArgumentNullException(nameof(clock));
+
             if (context is null)
                 throw new ArgumentNullException(nameof(context));
 
             Logger = logger;
+            DiagnosticsContext = diagnosticsContext;
             Localizer = localizer;
             Mapper = mapper;
+            Clock = clock;
             Context = context;
         }
 
-        public ILogger Logger { get; }
+        public ILogger<IncrementProductInCart> Logger { get; }
+
+        public IDiagnosticContext DiagnosticsContext { get; }
 
         public IStringLocalizer<Program> Localizer { get; }
 
         public IMapper Mapper { get; }
+
+        public IClock Clock { get; }
 
         public CartContext Context { get; }
 
@@ -50,13 +64,15 @@ namespace Cart.Api.Endpoints
             if (request is null)
                 return BadRequest();
 
-            Logger.LogTrace("Received request to increment product \"{ProductId}\" in cart \"{CartId}\" by \"{Increment}\".", request.ProductId, request.CartId, request.Increment);
+            DiagnosticsContext.Set("CartId", request.CartId);
+            DiagnosticsContext.Set("ProductId", request.ProductId);
+            DiagnosticsContext.Set("Increment", request.Increment);
 
             CartEntity cart = await Context.Carts.AsNoTracking().SingleOrDefaultAsync(c => c.Id == request.CartId, cancellationToken);
 
             if (cart is null)
             {
-                Logger.LogTrace("Cart \"{CartId}\" was not found.", request.CartId);
+                Logger.LogTrace("Cart not found");
                 string message = Localizer.GetStringSafe("CartNotFound", request.CartId);
                 return NotFoundProblem(message);
             }
@@ -65,10 +81,12 @@ namespace Cart.Api.Endpoints
 
             if (item is null)
             {
-                Logger.LogTrace("Item for cart \"{CartId}\" and product \"{ProductId}\" was not found, creating new item with quantity \"{Quantity}\".",
-                    request.CartId, request.ProductId, request.Increment);
-
                 item = Mapper.Map<ItemEntity>(request);
+                item.CreatedOn = Clock.UtcNow;
+                item.ModifiedOn = Clock.UtcNow;
+
+                DiagnosticsContext.Set("NewQuantity", item.Quantity);
+                DiagnosticsContext.Set("PreviousQuantity", 0);
 
                 Context.Items.Add(item);
             }
@@ -76,9 +94,10 @@ namespace Cart.Api.Endpoints
             {
                 int existingQuantity = item.Quantity;
                 item.Quantity += request.Increment;
+                item.ModifiedOn = Clock.UtcNow;
 
-                Logger.LogTrace("Updating item for cart \"{CartId}\" and product \"{ProductId}\" quantity to \"{NewQuantity}\" from \"{ExistingQuantity}\".",
-                    request.CartId, request.ProductId, item.Quantity, existingQuantity);
+                DiagnosticsContext.Set("NewQuantity", item.Quantity);
+                DiagnosticsContext.Set("PreviousQuantity", existingQuantity);
             }
 
             await Context.SaveChangesAsync(cancellationToken);
@@ -119,9 +138,10 @@ namespace Cart.Api.Endpoints
             public MappingProfile()
             {
                 CreateMap<Request, ItemEntity>(MemberList.Source)
-                    .ForMember(d => d.Quantity, opt => opt.MapFrom(s => s.Increment));
+                    .ForMember(d => d.Quantity, o => o.MapFrom(s => s.Increment))
+                    .ForMember(d => d.CreatedOn, o => o.Ignore());
                 CreateMap<ItemEntity, Response>(MemberList.Destination)
-                    .ForMember(d => d.ProductId, opt => opt.MapFrom(s => s.ProductId));
+                    .ForMember(d => d.ProductId, o => o.MapFrom(s => s.ProductId));
             }
         }
     }
