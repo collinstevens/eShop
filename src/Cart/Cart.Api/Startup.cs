@@ -4,6 +4,7 @@ using Core.Api;
 using Core.Api.Serilog;
 using Core.Api.Utility;
 using FluentValidation.AspNetCore;
+using Grpc.Core;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -15,8 +16,11 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using System;
+using static Grpc.Core.Metadata;
 using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
 namespace Cart.Api
@@ -56,6 +60,20 @@ namespace Cart.Api
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Cart API", Version = "v1" });
             });
+
+            services.AddOpenTelemetryTracing((builder) => builder
+              .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(Configuration["Otlp:ServiceName"]))
+              .AddAspNetCoreInstrumentation()
+              .AddHttpClientInstrumentation()
+              .AddOtlpExporter(options =>
+              {
+                  options.Endpoint = new Uri(Configuration["Otlp:Endpoint"]);
+                  options.Headers = new Metadata
+                  {
+                      new Entry("x-honeycomb-team", Configuration["HoneycombSettings:TeamId"]),
+                      new Entry("x-honeycomb-dataset", Configuration["HoneycombSettings:DefaultDataSet"]),
+                  };
+              }));
 
             services.AddSingleton<IClock, Clock>();
         }
