@@ -122,7 +122,6 @@ namespace Cart.Api
 
             app.UseAuthorization();
 
-            // TODO(collin): health checks and serilog https://andrewlock.net/using-serilog-aspnetcore-in-asp-net-core-3-excluding-health-check-endpoints-from-serilog-request-logging/
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
