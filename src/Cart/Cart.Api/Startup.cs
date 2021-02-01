@@ -4,11 +4,14 @@ using Core.Api;
 using Core.Api.Serilog;
 using Core.Api.Utility;
 using FluentValidation.AspNetCore;
+using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
@@ -25,10 +28,10 @@ namespace Cart.Api
             if (configuration is null)
                 throw new ArgumentNullException(nameof(configuration));
 
-            _configuration = configuration;
+            Configuration = configuration;
         }
 
-        private readonly IConfiguration _configuration;
+        public IConfiguration Configuration { get; }
 
         public void ConfigureServices(IServiceCollection services)
         {
@@ -40,7 +43,12 @@ namespace Cart.Api
 
             services.AddAutoMapper(typeof(Startup));
 
-            services.AddDbContextPool<CartContext>(options => options.UseSqlServer(_configuration.GetConnectionString("DefaultConnection")));
+            services.AddDbContextPool<CartContext>(options => options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddHealthChecks()
+                .AddCheck("self", () => HealthCheckResult.Healthy())
+                .AddElasticsearch(Configuration["ElasticConfiguration:Uri"])
+                .AddSqlServer(Configuration.GetConnectionString("DefaultConnection"));
 
             services.AddLocalization(options => options.ResourcesPath = "Resources");
 
@@ -77,7 +85,11 @@ namespace Cart.Api
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Cart API v1"));
             }
 
-            app.UseSerilogRequestLogging(options => options.EnrichDiagnosticContext = LogEnricher.EnrichFromRequest);
+            app.UseSerilogRequestLogging(options =>
+            {
+                options.EnrichDiagnosticContext = LogEnricher.EnrichFromRequest;
+                options.GetLevel = LogHelper.ExcludeHealthChecks;
+            });
 
             var supportedCultures = new[] { "en-US" };
             var localizationOptions = new RequestLocalizationOptions().SetDefaultCulture(supportedCultures[0])
@@ -96,6 +108,18 @@ namespace Cart.Api
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+
+                endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions()
+                {
+                    Predicate = _ => true,
+                    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+                });
+
+                endpoints.MapHealthChecks("/health/live", new HealthCheckOptions
+                {
+                    Predicate = r => r.Name.Contains("self"),
+                    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+                });
             });
         }
     }

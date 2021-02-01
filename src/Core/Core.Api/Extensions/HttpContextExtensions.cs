@@ -21,5 +21,15 @@ namespace Core.Api.Extensions
             Endpoint endpoint = httpContext.GetEndpoint();
             return endpoint?.Metadata.GetMetadata<EndpointNameMetadata>()?.EndpointName;
         }
+
+        // NOTE(collin): https://andrewlock.net/using-serilog-aspnetcore-in-asp-net-core-3-excluding-health-check-endpoints-from-serilog-request-logging/
+        public static bool IsHealthCheckEndpoint(this HttpContext httpContext)
+        {
+            var endpoint = httpContext.GetEndpoint();
+            if (endpoint is null)
+                return false;
+
+            return string.Equals(endpoint.DisplayName, "Health checks", StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
