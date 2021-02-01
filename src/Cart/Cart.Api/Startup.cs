@@ -21,7 +21,6 @@ using OpenTelemetry.Trace;
 using Serilog;
 using System;
 using static Grpc.Core.Metadata;
-using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
 namespace Cart.Api
 {
